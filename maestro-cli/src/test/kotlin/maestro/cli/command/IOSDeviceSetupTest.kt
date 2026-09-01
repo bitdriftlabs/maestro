@@ -10,13 +10,15 @@ class IOSDeviceSetupTest {
         val setup = IOSDeviceSetup(
             operatingSystemName = { "Mac OS X" },
             commandRunner = FakeCommandRunner(),
-            connectedDeviceCount = { 1 },
+            connectedDevices = { listOf(connectedDevice()) },
         )
 
         val result = setup.run(installDependencies = false)
 
         assertThat(result.isReady).isTrue()
-        assertThat(result.nextStep).contains("maestro driver-setup")
+        assertThat(result.nextStep).isEqualTo(
+            "Next, build and sign the XCTest runner with: maestro driver-setup --apple-team-id <APPLE_TEAM_ID> --destination 'platform=iOS,id=00008140-00180D623C52801C'"
+        )
     }
 
     @Test
@@ -30,7 +32,7 @@ class IOSDeviceSetupTest {
         val setup = IOSDeviceSetup(
             operatingSystemName = { "Mac OS X" },
             commandRunner = commandRunner,
-            connectedDeviceCount = { 1 },
+            connectedDevices = { listOf(connectedDevice()) },
         )
 
         val result = setup.run(installDependencies = true)
@@ -49,7 +51,7 @@ class IOSDeviceSetupTest {
         val setup = IOSDeviceSetup(
             operatingSystemName = { "Mac OS X" },
             commandRunner = commandRunner,
-            connectedDeviceCount = { 1 },
+            connectedDevices = { listOf(connectedDevice()) },
         )
 
         val result = setup.run(installDependencies = false)
@@ -69,7 +71,7 @@ class IOSDeviceSetupTest {
                     "brew install libimobiledevice" to false,
                 ),
             ),
-            connectedDeviceCount = { 1 },
+            connectedDevices = { listOf(connectedDevice()) },
         )
 
         val result = setup.run(installDependencies = true)
@@ -84,7 +86,7 @@ class IOSDeviceSetupTest {
         val setup = IOSDeviceSetup(
             operatingSystemName = { "Linux" },
             commandRunner = commandRunner,
-            connectedDeviceCount = { 1 },
+            connectedDevices = { listOf(connectedDevice()) },
         )
 
         val result = setup.run(installDependencies = true)
@@ -109,4 +111,9 @@ class IOSDeviceSetupTest {
             return IOSDeviceSetup.CommandResult(responses[invocation] ?: true)
         }
     }
+
+    private fun connectedDevice() = IOSDeviceSetup.ConnectedDevice(
+        name = "Test iPhone",
+        udid = "00008140-00180D623C52801C",
+    )
 }

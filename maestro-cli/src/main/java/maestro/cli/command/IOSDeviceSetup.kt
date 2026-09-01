@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit
 internal class IOSDeviceSetup(
     private val operatingSystemName: () -> String = { System.getProperty("os.name") },
     private val commandRunner: CommandRunner = ProcessCommandRunner(),
-    private val connectedDeviceCount: () -> Int = ::connectedDeviceCount,
+    private val connectedDevices: () -> List<ConnectedDevice> = ::connectedDevices,
 ) {
     fun run(installDependencies: Boolean): Result {
         if (operatingSystemName() != "Mac OS X") {
@@ -27,10 +27,10 @@ internal class IOSDeviceSetup(
             iproxyAvailable = commandRunner.run("iproxy", "--version").succeeded
         }
 
-        val connectedDevices = if (devicectlAvailable) {
-            runCatching(connectedDeviceCount).getOrDefault(0)
+        val physicalDevices = if (devicectlAvailable) {
+            runCatching(connectedDevices).getOrDefault(emptyList())
         } else {
-            0
+            emptyList()
         }
 
         val nextStep = when {
@@ -38,8 +38,11 @@ internal class IOSDeviceSetup(
             !iproxyAvailable && !homebrewAvailable -> "Install Homebrew, then run: brew install libimobiledevice"
             !iproxyAvailable -> "Run: brew install libimobiledevice"
             !devicectlAvailable -> "Install or select Xcode 26 or newer: xcode-select --switch /Applications/Xcode.app/Contents/Developer"
-            connectedDevices == 0 -> "Connect and trust an iPhone with Developer Mode enabled, then run this command again."
-            else -> "Next, build and sign the XCTest runner with: maestro driver-setup --apple-team-id <APPLE_TEAM_ID> --destination 'platform=iOS,id=<DEVICE_UDID>'"
+            physicalDevices.isEmpty() -> "Connect and trust an iPhone with Developer Mode enabled, then run this command again."
+            else -> {
+                val destinationUdid = physicalDevices.singleOrNull()?.udid ?: "<DEVICE_UDID>"
+                "Next, build and sign the XCTest runner with: maestro driver-setup --apple-team-id <APPLE_TEAM_ID> --destination 'platform=iOS,id=$destinationUdid'"
+            }
         }
 
         return Result(
@@ -47,7 +50,7 @@ internal class IOSDeviceSetup(
                 Check("macOS", true, "Detected macOS."),
                 Check("Xcode devicectl", devicectlAvailable, "Required for app lifecycle and device discovery."),
                 Check("iproxy", iproxyAvailable, "Required to forward the XCTest runner port."),
-                Check("connected iPhone", connectedDevices > 0, "Found $connectedDevices connected physical iPhone(s)."),
+                Check("connected iPhone", physicalDevices.isNotEmpty(), connectedDeviceDetail(physicalDevices)),
             ),
             nextStep = nextStep,
         )
@@ -65,6 +68,11 @@ internal class IOSDeviceSetup(
         val name: String,
         val succeeded: Boolean,
         val detail: String,
+    )
+
+    data class ConnectedDevice(
+        val name: String,
+        val udid: String,
     )
 
     internal interface CommandRunner {
@@ -100,8 +108,23 @@ internal class IOSDeviceSetup(
     private companion object {
         const val COMMAND_TIMEOUT_SECONDS = 30L
 
-        fun connectedDeviceCount(): Int = LocalIOSDevice()
+        fun connectedDevices(): List<ConnectedDevice> = LocalIOSDevice()
             .listDeviceViaDeviceCtl()
-            .count { it.connectionProperties.tunnelState == DeviceCtlResponse.ConnectionProperties.CONNECTED }
+            .filter {
+                it.connectionProperties.tunnelState == DeviceCtlResponse.ConnectionProperties.CONNECTED &&
+                    it.hardwareProperties?.reality == "physical"
+            }
+            .mapNotNull { device ->
+                val udid = device.hardwareProperties?.udid ?: return@mapNotNull null
+                ConnectedDevice(
+                    name = device.deviceProperties?.name ?: "iPhone",
+                    udid = udid,
+                )
+            }
+
+        fun connectedDeviceDetail(devices: List<ConnectedDevice>): String = when {
+            devices.isEmpty() -> "No connected physical iPhones found."
+            else -> "Found ${devices.size}: ${devices.joinToString { "${it.name} (UDID: ${it.udid})" }}"
+        }
     }
 }

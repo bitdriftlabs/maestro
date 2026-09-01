@@ -41,6 +41,7 @@ data class DeviceCtlResponse(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class HardwareProperties(
-        val udid: String?
+        val udid: String?,
+        val reality: String?,
     )
 }
