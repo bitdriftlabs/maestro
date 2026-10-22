@@ -14,5 +14,6 @@ object PhysicalDeviceXCTestRunConfiguration {
                 xcTestRunFile.absolutePath,
             ),
         )
+
     }
 }

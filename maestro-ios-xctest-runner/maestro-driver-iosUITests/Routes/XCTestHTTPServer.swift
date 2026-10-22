@@ -31,7 +31,14 @@ enum Route: String, CaseIterable {
 struct XCTestHTTPServer {
     func start() async throws {
         let port = ProcessInfo.processInfo.environment["PORT"]?.toUInt16()
-        let server = HTTPServer(address: try .inet(ip4: "127.0.0.1", port: port ?? 22087), timeout: 100)
+        let server: HTTPServer
+        if ProcessInfo.processInfo.environment["MAESTRO_DRIVER_DIRECT_TUNNEL"] == "1" {
+            // CoreDevice's physical-device tunnel addresses the runner over IPv6. `HTTPServer(port:)`
+            // binds the IPv6 socket; the legacy iproxy path stays isolated to IPv4 loopback below.
+            server = HTTPServer(port: port ?? 22087, timeout: 100)
+        } else {
+            server = HTTPServer(address: try .inet(ip4: "127.0.0.1", port: port ?? 22087), timeout: 100)
+        }
         
         for route in Route.allCases {
             let handler = await RouteHandlerFactory.createRouteHandler(route: route)

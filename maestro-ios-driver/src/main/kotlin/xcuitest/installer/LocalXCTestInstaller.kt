@@ -15,6 +15,7 @@ import util.IOSDevicePortForwarder
 import util.LocalIOSDeviceController
 import util.LocalSimulatorUtils
 import util.PhysicalDeviceXCTestRunConfiguration
+import util.PhysicalDeviceXCTestTransport
 import util.XCRunnerCLIUtils
 import xcuitest.XCTestClient
 import java.io.File
@@ -28,6 +29,7 @@ class LocalXCTestInstaller(
     private val deviceId: String,
     private val host: String = "127.0.0.1",
     private val deviceType: IOSDeviceType,
+    private val physicalDeviceTransport: PhysicalDeviceXCTestTransport = PhysicalDeviceXCTestTransport.IProxy,
     private val defaultPort: Int,
     private val metricsProvider: Metrics = MetricsProvider.getInstance(),
     private val httpClient: OkHttpClient = HttpClient.build(
@@ -107,7 +109,7 @@ class LocalXCTestInstaller(
         return metrics.measured("operation", mapOf("command" to "start")) {
             logger.info("start()")
 
-            if (deviceType == IOSDeviceType.REAL) {
+            if (deviceType == IOSDeviceType.REAL && physicalDeviceTransport.requiresPortForwarder) {
                 devicePortForwarder.start(defaultPort, deviceId)
             }
 
@@ -169,7 +171,7 @@ class LocalXCTestInstaller(
         fun xctestAPIBuilder(pathSegment: String): HttpUrl.Builder {
             return HttpUrl.Builder()
                 .scheme("http")
-                .host("127.0.0.1")
+                .host(host)
                 .addPathSegment(pathSegment)
                 .port(defaultPort)
         }
@@ -214,6 +216,7 @@ class LocalXCTestInstaller(
             logger.info("[Start] Running XcUITest with `xcodebuild test-without-building` with $defaultPort and config: $iOSDriverConfig")
             if (deviceType == IOSDeviceType.REAL) {
                 PhysicalDeviceXCTestRunConfiguration.configurePort(buildProducts.xctestRunPath, defaultPort)
+                physicalDeviceTransport.configureRunFile(buildProducts.xctestRunPath)
             }
             xcTestProcess = xcRunnerCLIUtils.runXcTestWithoutBuild(
                 deviceId = this.deviceId,
@@ -274,7 +277,7 @@ class LocalXCTestInstaller(
     )
 
     companion object {
-        const val UI_TEST_RUNNER_APP_BUNDLE_ID = "dev.mobile.maestro-driver-iosUITests.xctrunner"
+        const val UI_TEST_RUNNER_APP_BUNDLE_ID = "io.bitdrift.maestro-driver-iosUITests.xctrunner"
 
         private const val SERVER_LAUNCH_TIMEOUT_MS = 120000L
         private const val MAESTRO_DRIVER_STARTUP_TIMEOUT = "MAESTRO_DRIVER_STARTUP_TIMEOUT"

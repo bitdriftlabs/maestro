@@ -5,6 +5,7 @@ import maestro.utils.TempFileHandler
 import org.junit.jupiter.api.Test
 import util.DeviceCtlProcess
 import util.LocalIOSDevice
+import util.PhysicalDeviceXCTestTransport
 
 class DeviceCtlResponseTest {
 
@@ -21,6 +22,10 @@ class DeviceCtlResponseTest {
             val connectedDevices = LocalIOSDevice(deviceCtlProcess).listDeviceViaDeviceCtl()
 
             assertThat(connectedDevices).isNotEmpty()
+            assertThat(connectedDevices.first().connectionProperties.tunnelIPAddress)
+                .isEqualTo("fda8:f5da:6c62::1")
+            assertThat(PhysicalDeviceXCTestTransport.forDevice(connectedDevices.first()).host)
+                .isEqualTo("fda8:f5da:6c62::1")
         }
     }
 
@@ -56,6 +61,7 @@ class DeviceCtlResponseTest {
                      "authenticationType" : "manualPairing",
                      "isMobileDeviceOnly" : false,
                      "pairingState" : "paired",
+                     "tunnelIPAddress" : "fda8:f5da:6c62::1",
                      "potentialHostnames" : [
                        "00008110-001C108C0132401E.coredevice.local",
                        "0097E500-40E1-4842-93ED-89C7D7E25655.coredevice.local"

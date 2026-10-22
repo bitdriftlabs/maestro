@@ -56,7 +56,7 @@ jobs:
           PRERELEASE: ${{ inputs.prerelease }}
           VERSION: ${{ inputs.version }}
         run: |
-          tag="bitdrift-maestro-v$VERSION"
+          tag="bd-v$VERSION"
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "::error::Release '$tag' already exists. Releases are immutable; choose a new version."
             exit 1
