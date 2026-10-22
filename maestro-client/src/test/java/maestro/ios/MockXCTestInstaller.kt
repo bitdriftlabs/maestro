@@ -9,12 +9,16 @@ class MockXCTestInstaller(
     private val port: Int = 22807,
 ) : XCTestInstaller {
 
+    private companion object {
+        const val UI_TEST_RUNNER_APP_BUNDLE_ID = "io.bitdrift.maestro-driver-iosUITests.xctrunner"
+    }
+
     private var attempts = 0
 
     override fun start(): XCTestClient {
         attempts++
         for (i in 0..simulator.installationRetryCount) {
-            assertThat(simulator.runningApps()).doesNotContain("dev.mobile.maestro-driver-iosUITests.xctrunner")
+            assertThat(simulator.runningApps()).doesNotContain(UI_TEST_RUNNER_APP_BUNDLE_ID)
         }
         simulator.installXCTestDriver()
         return XCTestClient("localhost", port)
@@ -46,10 +50,10 @@ class MockXCTestInstaller(
 
         fun runningApps() = runningApps
 
-        fun isXCTestRunnerAlive() = runningApps.contains("dev.mobile.maestro-driver-iosUITests.xctrunner")
+        fun isXCTestRunnerAlive() = runningApps.contains(UI_TEST_RUNNER_APP_BUNDLE_ID)
 
         fun uninstallXCTestDriver() = runningApps.clear()
 
-        fun installXCTestDriver() = runningApps.add("dev.mobile.maestro-driver-iosUITests.xctrunner")
+        fun installXCTestDriver() = runningApps.add(UI_TEST_RUNNER_APP_BUNDLE_ID)
     }
 }

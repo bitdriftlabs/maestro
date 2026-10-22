@@ -42,7 +42,7 @@ object LocalIOSDeviceController {
                 "--terminate-existing",
                 "--device",
                 deviceId,
-                "dev.mobile.maestro-driver-iosUITests.xctrunner"
+                "io.bitdrift.maestro-driver-iosUITests.xctrunner"
             ),
             params = params,
             waitForCompletion = false,

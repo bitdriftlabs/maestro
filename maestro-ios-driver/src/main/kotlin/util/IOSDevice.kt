@@ -27,6 +27,13 @@ data class DeviceCtlResponse(
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class ConnectionProperties(
         val tunnelState: String,
+        /**
+         * Host-reachable IPv6 address assigned by CoreDevice for its connection tunnel.
+         *
+         * This is present for physical devices whose XCTest runner can be contacted directly,
+         * without an `iproxy` port forward.
+         */
+        val tunnelIPAddress: String? = null,
     ) {
         companion object {
             const val CONNECTED  = "connected"

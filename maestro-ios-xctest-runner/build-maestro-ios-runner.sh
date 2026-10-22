@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$(basename "$PWD")" != "Maestro" ]; then
+if [ ! -f "$PWD/maestro-ios-xctest-runner/maestro-driver-ios.xcodeproj/project.pbxproj" ]; then
 	echo "This script must be run from the maestro root directory"
 	exit 1
 fi

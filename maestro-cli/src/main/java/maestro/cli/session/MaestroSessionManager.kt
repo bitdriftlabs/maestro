@@ -41,6 +41,7 @@ import maestro.orchestra.workspace.WorkspaceExecutionPlanner
 import maestro.utils.TempFileHandler
 import org.slf4j.LoggerFactory
 import util.IOSDeviceType
+import util.PhysicalDeviceXCTestTransport
 import util.XCRunnerCLIUtils
 import xcuitest.XCTestClient
 import xcuitest.XCTestDriverClient
@@ -390,10 +391,18 @@ object MaestroSessionManager {
         }
 
         val tempFileHandler = TempFileHandler()
+        val physicalDevice = if (deviceType == Device.DeviceType.REAL) {
+            util.LocalIOSDevice().listDeviceViaDeviceCtl(deviceId)
+        } else {
+            null
+        }
+        val physicalDeviceTransport = physicalDevice
+            ?.let(PhysicalDeviceXCTestTransport::forDevice)
+            ?: PhysicalDeviceXCTestTransport.IProxy
+        val xctestHost = physicalDeviceTransport.host
         val deviceController = when (deviceType) {
             Device.DeviceType.REAL -> {
-                val device = util.LocalIOSDevice().listDeviceViaDeviceCtl(deviceId)
-                val deviceCtlDevice = DeviceControlIOSDevice(deviceId = device.identifier)
+                val deviceCtlDevice = DeviceControlIOSDevice(deviceId = requireNotNull(physicalDevice).identifier)
                 deviceCtlDevice
             }
             Device.DeviceType.SIMULATOR -> {
@@ -408,10 +417,11 @@ object MaestroSessionManager {
 
         val xcTestInstaller = LocalXCTestInstaller(
             deviceId = deviceId,
-            host = defaultXctestHost,
+            host = xctestHost,
             defaultPort = driverHostPort ?: defaultXcTestPort,
             reinstallDriver = reinstallDriver,
             deviceType = iOSDeviceType,
+            physicalDeviceTransport = physicalDeviceTransport,
             iOSDriverConfig = iOSDriverConfig,
             deviceController = deviceController,
             tempFileHandler = tempFileHandler,
@@ -420,7 +430,7 @@ object MaestroSessionManager {
 
         val xcTestDriverClient = XCTestDriverClient(
             installer = xcTestInstaller,
-            client = XCTestClient(defaultXctestHost, driverHostPort ?: defaultXcTestPort),
+            client = XCTestClient(xctestHost, driverHostPort ?: defaultXcTestPort),
             reinstallDriver = reinstallDriver,
         )
 

@@ -11,7 +11,9 @@ class IOSDevicePortForwarder : Closeable {
             return
         }
 
-        process = ProcessBuilder("iproxy", "--udid", deviceId, "$port:$port")
+        // Prefer a USB connection and fall back to legacy Wi-Fi pairing. CoreDevice tunnels are
+        // handled directly by LocalXCTestInstaller and do not start this process.
+        process = ProcessBuilder("iproxy", "--network", "--local", "--udid", deviceId, "$port:$port")
             .redirectOutput(ProcessBuilder.Redirect.DISCARD)
             .redirectError(ProcessBuilder.Redirect.INHERIT)
             .start()

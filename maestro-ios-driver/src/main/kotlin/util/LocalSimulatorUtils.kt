@@ -354,7 +354,7 @@ class LocalSimulatorUtils(private val tempFileHandler: TempFileHandler) {
                 "--console",
                 "--terminate-running-process",
                 deviceId,
-                "dev.mobile.maestro-driver-iosUITests.xctrunner"
+                "io.bitdrift.maestro-driver-iosUITests.xctrunner"
             ),
             params = params,
             outputFile = outputFile,
